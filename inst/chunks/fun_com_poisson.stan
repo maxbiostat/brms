@@ -22,11 +22,11 @@ real log_Z_com_poisson_approx(real log_mu, real nu) {
 // Args:
 //   log_mu: log location parameter
 //   shape: positive shape parameter
-real log_Z_com_poisson(real log_mu, real nu, real eps) {
+real log_Z_com_poisson(real log_mu, real nu) {
   real log_Z;
   int k = 2;
-  int M = 10000;
-  real leps = log(eps);
+  int M = 100000;
+  real leps = -36; // machine-epsilon
   vector[M] log_Z_terms;
   if (nu == 1) {
     return exp(log_mu);
@@ -49,12 +49,13 @@ real log_Z_com_poisson(real log_mu, real nu, real eps) {
   // first 2 terms of the series
   log_Z_terms[1] = 0;
   log_Z_terms[2] = log_mu;
-  while (log_Z_terms[k] >= leps && k < M) {
+  while (log(exp(log_Z_terms[k]) * abs(1 - pow(1 - exp(log_Z_terms[k])/exp(log_Z_terms[k-1]), -1))) >= log(2) + leps && k < M) {
     k += 1;
     log_Z_terms[k] = (k - 1) * log_mu - nu * lgamma(k);
   }
   log_Z = log_sum_exp(log_Z_terms[1:k]);
-  return log_Z;
+  
+  return log_sum_exp([log_Z, log(exp(log_Z_terms[k])/2 * (1 + pow(1 - exp(log_Z_terms[k])/exp(log_Z_terms[k-1]), -1)))]);
 }
 // COM Poisson log-PMF for a single response (log parameterization)
 // Args: 
